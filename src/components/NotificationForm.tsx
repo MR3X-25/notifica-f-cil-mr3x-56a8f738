@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { generateToken, getDefaultTerms } from "@/lib/notificationUtils";
 import { Loader2, FileText, User, Building2 } from "lucide-react";
+import { fetchAddressByCep } from "@/lib/cepService";
+import { DisclaimerDialog } from "@/components/DisclaimerDialog";
 
 interface NotificationFormData {
   // Credor
@@ -18,6 +20,7 @@ interface NotificationFormData {
   creditorCity: string;
   creditorState: string;
   creditorZip: string;
+  creditorComplement: string;
   creditorEmail: string;
   creditorPhone: string;
   
@@ -28,6 +31,7 @@ interface NotificationFormData {
   debtorCity: string;
   debtorState: string;
   debtorZip: string;
+  debtorComplement: string;
   debtorEmail: string;
   debtorPhone: string;
   
@@ -46,14 +50,61 @@ interface NotificationFormProps {
 
 export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm<NotificationFormData>({
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [pendingData, setPendingData] = useState<NotificationFormData | null>(null);
+  const [creatorData, setCreatorData] = useState<{ ip: string; hash: string } | null>(null);
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<NotificationFormData>({
     defaultValues: {
       paymentDeadlineDays: 10,
       termsAndClauses: getDefaultTerms(),
     }
   });
 
+  const creditorZip = watch("creditorZip");
+  const debtorZip = watch("debtorZip");
+
+  useEffect(() => {
+    const loadCreditorAddress = async () => {
+      if (creditorZip?.replace(/\D/g, '').length === 8) {
+        const address = await fetchAddressByCep(creditorZip);
+        if (address) {
+          setValue("creditorAddress", address.logradouro);
+          setValue("creditorCity", address.localidade);
+          setValue("creditorState", address.uf);
+          toast.success("Endereço do credor preenchido automaticamente");
+        }
+      }
+    };
+    loadCreditorAddress();
+  }, [creditorZip, setValue]);
+
+  useEffect(() => {
+    const loadDebtorAddress = async () => {
+      if (debtorZip?.replace(/\D/g, '').length === 8) {
+        const address = await fetchAddressByCep(debtorZip);
+        if (address) {
+          setValue("debtorAddress", address.logradouro);
+          setValue("debtorCity", address.localidade);
+          setValue("debtorState", address.uf);
+          toast.success("Endereço do devedor preenchido automaticamente");
+        }
+      }
+    };
+    loadDebtorAddress();
+  }, [debtorZip, setValue]);
+
   const onSubmit = async (data: NotificationFormData) => {
+    setPendingData(data);
+    setShowDisclaimer(true);
+  };
+
+  const handleDisclaimerConfirm = async (creator: { ip: string; hash: string }) => {
+    setShowDisclaimer(false);
+    setCreatorData(creator);
+    
+    if (!pendingData) return;
+    
+    const data = pendingData;
     setIsSubmitting(true);
     try {
       const token = generateToken();
@@ -62,6 +113,8 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
         .from("extrajudicial_notifications")
         .insert({
           token,
+          creator_ip: creator.ip,
+          creator_hash: creator.hash,
           creditor_name: data.creditorName,
           creditor_document: data.creditorDocument,
           creditor_address: data.creditorAddress,
@@ -107,7 +160,16 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <>
+      <DisclaimerDialog
+        open={showDisclaimer}
+        onConfirm={handleDisclaimerConfirm}
+        onCancel={() => {
+          setShowDisclaimer(false);
+          setPendingData(null);
+        }}
+      />
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* Dados do Credor */}
       <Card>
         <CardHeader>
@@ -144,7 +206,11 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
           </div>
           <div>
             <Label htmlFor="creditorZip">CEP *</Label>
-            <Input id="creditorZip" {...register("creditorZip", { required: true })} />
+            <Input id="creditorZip" placeholder="00000-000" {...register("creditorZip", { required: true })} />
+          </div>
+          <div>
+            <Label htmlFor="creditorComplement">Complemento</Label>
+            <Input id="creditorComplement" {...register("creditorComplement")} />
           </div>
           <div>
             <Label htmlFor="creditorPhone">Telefone</Label>
@@ -189,7 +255,11 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
           </div>
           <div>
             <Label htmlFor="debtorZip">CEP *</Label>
-            <Input id="debtorZip" {...register("debtorZip", { required: true })} />
+            <Input id="debtorZip" placeholder="00000-000" {...register("debtorZip", { required: true })} />
+          </div>
+          <div>
+            <Label htmlFor="debtorComplement">Complemento</Label>
+            <Input id="debtorComplement" {...register("debtorComplement")} />
           </div>
           <div>
             <Label htmlFor="debtorPhone">Telefone</Label>
@@ -260,5 +330,6 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
         )}
       </Button>
     </form>
+    </>
   );
 };

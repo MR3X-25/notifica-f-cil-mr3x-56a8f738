@@ -4,7 +4,8 @@ import { NotificationForm } from "@/components/NotificationForm";
 import { NotificationPreview } from "@/components/NotificationPreview";
 import { NotificationSearch } from "@/components/NotificationSearch";
 import { FileText, Search, Eye } from "lucide-react";
-import logo from "@/assets/mr3x-logo.png";
+import logo from "@/assets/mr3x-logo-3d.png";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const [currentNotificationId, setCurrentNotificationId] = useState<string | null>(null);
@@ -32,6 +33,7 @@ const Index = () => {
                 </p>
               </div>
             </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -99,7 +101,12 @@ const Index = () => {
                   Verifique a autenticidade de uma notificação através do token ou hash
                 </p>
               </div>
-              <NotificationSearch />
+              <NotificationSearch 
+                onViewPreview={(id) => {
+                  setCurrentNotificationId(id);
+                  setActiveTab("preview");
+                }}
+              />
             </div>
           </TabsContent>
         </Tabs>

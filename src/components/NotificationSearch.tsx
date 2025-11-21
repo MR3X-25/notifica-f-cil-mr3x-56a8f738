@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,21 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Loader2, FileCheck, AlertCircle } from "lucide-react";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/notificationUtils";
+import { NotificationList } from "@/components/NotificationList";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { List } from "lucide-react";
 
-export const NotificationSearch = () => {
+interface NotificationSearchProps {
+  onViewPreview?: (id: string) => void;
+}
+
+export const NotificationSearch = ({ onViewPreview }: NotificationSearchProps) => {
   const [searchToken, setSearchToken] = useState("");
   const [searchHash, setSearchHash] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [allNotifications, setAllNotifications] = useState<any[]>([]);
 
   const handleSearch = async () => {
     if (!searchToken && !searchHash) {
@@ -58,9 +67,44 @@ export const NotificationSearch = () => {
     setResult(null);
   };
 
+  const loadAllNotifications = async () => {
+    setIsLoadingAll(true);
+    try {
+      const { data, error } = await supabase
+        .from("extrajudicial_notifications")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setAllNotifications(data || []);
+    } catch (error) {
+      console.error("Error loading notifications:", error);
+      toast.error("Erro ao carregar notificações");
+    } finally {
+      setIsLoadingAll(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllNotifications();
+  }, []);
+
   return (
-    <div className="space-y-6">
-      <Card>
+    <Tabs defaultValue="search" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="search" className="gap-2">
+          <Search className="h-4 w-4" />
+          Buscar por Token/Hash
+        </TabsTrigger>
+        <TabsTrigger value="list" className="gap-2">
+          <List className="h-4 w-4" />
+          Todas as Notificações
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="search" className="space-y-6">
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
@@ -204,6 +248,33 @@ export const NotificationSearch = () => {
           </CardContent>
         </Card>
       )}
-    </div>
+      </TabsContent>
+
+      <TabsContent value="list" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <List className="h-5 w-5" />
+              Todas as Notificações
+            </CardTitle>
+            <CardDescription>
+              Lista completa de notificações emitidas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingAll ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <NotificationList 
+                notifications={allNotifications} 
+                onViewPreview={(id) => onViewPreview?.(id)}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 };
