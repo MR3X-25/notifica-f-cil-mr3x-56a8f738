@@ -21,8 +21,11 @@ export type Database = {
           accepted: boolean | null
           accepted_at: string | null
           created_at: string
+          creator_hash: string | null
+          creator_ip: string | null
           creditor_address: string
           creditor_city: string
+          creditor_complement: string | null
           creditor_document: string
           creditor_email: string | null
           creditor_name: string
@@ -33,6 +36,7 @@ export type Database = {
           debt_description: string
           debtor_address: string
           debtor_city: string
+          debtor_complement: string | null
           debtor_document: string
           debtor_email: string | null
           debtor_name: string
@@ -55,8 +59,11 @@ export type Database = {
           accepted?: boolean | null
           accepted_at?: string | null
           created_at?: string
+          creator_hash?: string | null
+          creator_ip?: string | null
           creditor_address: string
           creditor_city: string
+          creditor_complement?: string | null
           creditor_document: string
           creditor_email?: string | null
           creditor_name: string
@@ -67,6 +74,7 @@ export type Database = {
           debt_description: string
           debtor_address: string
           debtor_city: string
+          debtor_complement?: string | null
           debtor_document: string
           debtor_email?: string | null
           debtor_name: string
@@ -89,8 +97,11 @@ export type Database = {
           accepted?: boolean | null
           accepted_at?: string | null
           created_at?: string
+          creator_hash?: string | null
+          creator_ip?: string | null
           creditor_address?: string
           creditor_city?: string
+          creditor_complement?: string | null
           creditor_document?: string
           creditor_email?: string | null
           creditor_name?: string
@@ -101,6 +112,7 @@ export type Database = {
           debt_description?: string
           debtor_address?: string
           debtor_city?: string
+          debtor_complement?: string | null
           debtor_document?: string
           debtor_email?: string | null
           debtor_name?: string
