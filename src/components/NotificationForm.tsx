@@ -191,6 +191,10 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
             <Input id="creditorDocument" {...register("creditorDocument", { required: true })} />
           </div>
           <div>
+            <Label htmlFor="creditorZip">CEP *</Label>
+            <Input id="creditorZip" placeholder="00000-000" {...register("creditorZip", { required: true })} />
+          </div>
+          <div>
             <Label htmlFor="creditorEmail">E-mail</Label>
             <Input id="creditorEmail" type="email" {...register("creditorEmail")} />
           </div>
@@ -205,10 +209,6 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
           <div>
             <Label htmlFor="creditorState">Estado *</Label>
             <Input id="creditorState" maxLength={2} {...register("creditorState", { required: true })} />
-          </div>
-          <div>
-            <Label htmlFor="creditorZip">CEP *</Label>
-            <Input id="creditorZip" placeholder="00000-000" {...register("creditorZip", { required: true })} />
           </div>
           <div>
             <Label htmlFor="creditorComplement">Complemento</Label>
@@ -240,6 +240,10 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
             <Input id="debtorDocument" {...register("debtorDocument", { required: true })} />
           </div>
           <div>
+            <Label htmlFor="debtorZip">CEP *</Label>
+            <Input id="debtorZip" placeholder="00000-000" {...register("debtorZip", { required: true })} />
+          </div>
+          <div>
             <Label htmlFor="debtorEmail">E-mail</Label>
             <Input id="debtorEmail" type="email" {...register("debtorEmail")} />
           </div>
@@ -254,10 +258,6 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
           <div>
             <Label htmlFor="debtorState">Estado *</Label>
             <Input id="debtorState" maxLength={2} {...register("debtorState", { required: true })} />
-          </div>
-          <div>
-            <Label htmlFor="debtorZip">CEP *</Label>
-            <Input id="debtorZip" placeholder="00000-000" {...register("debtorZip", { required: true })} />
           </div>
           <div>
             <Label htmlFor="debtorComplement">Complemento</Label>
