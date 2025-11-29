@@ -8,6 +8,8 @@ import Barcode from "react-barcode";
 import { QRCodeSVG } from "qrcode.react";
 import { formatCurrency, formatDate, formatDocument, generateHash, formatDateTime } from "@/lib/notificationUtils";
 import logo from "@/assets/mr3x-logo-3d.png";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface NotificationPreviewProps {
   notificationId: string;
@@ -82,9 +84,30 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
     }
   };
 
-  const handleGeneratePDF = () => {
-    toast.info("Função de geração de PDF em desenvolvimento");
-    // This will be implemented with a backend function
+  const handleGeneratePDF = async () => {
+    try {
+      const element = document.getElementById('notification-document');
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Notificacao_${notification.token}.pdf`);
+      
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erro ao gerar PDF");
+    }
   };
 
   if (isLoading) {
@@ -150,41 +173,48 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
       )}
 
       {/* Preview Document */}
-      <Card className="bg-card shadow-lg relative">
+      <Card className="bg-card shadow-lg relative" id="notification-document">
         <CardContent className="p-8 space-y-6">
           {/* Vertical Barcode on Left Margin */}
-          <div className="absolute left-2 top-8 bottom-8 flex items-center">
+          <div className="absolute left-0 top-8 bottom-8 flex items-center justify-center" style={{ width: '48px' }}>
             <div style={{ transform: 'rotate(-90deg)', transformOrigin: 'center', width: '300px' }}>
-              <Barcode value={notification.token} height={40} fontSize={10} width={1.5} />
+              <Barcode 
+                value={notification.token} 
+                height={40} 
+                fontSize={10} 
+                width={1.5}
+                background="transparent"
+                margin={0}
+              />
             </div>
           </div>
 
           {/* Header */}
-          <div className="flex items-start justify-between border-b-2 border-primary pb-6 ml-12">
+          <div className="flex items-start justify-between border-b-2 border-primary pb-6 ml-16">
             <div className="flex-shrink-0">
-              <img src={logo} alt="MR3X Logo" className="h-16 w-auto" />
+              <img src={logo} alt="MR3X Logo" style={{ width: '132px', height: '132px' }} className="object-contain" />
             </div>
             <div className="flex-1 text-center px-8">
-              <h1 className="text-2xl font-bold text-primary mb-2" style={{ textShadow: 'none' }}>
+              <h1 className="text-2xl font-bold text-primary mb-2">
                 NOTIFICAÇÃO EXTRAJUDICIAL
               </h1>
-              <p className="text-sm text-foreground font-semibold" style={{ textShadow: 'none' }}>
+              <p className="text-sm text-foreground font-semibold">
                 MR3X - GESTÃO E TECNOLOGIA EM PAGAMENTOS DE ALUGUÉIS
               </p>
             </div>
             <div className="flex-shrink-0">
-              <QRCodeSVG value={qrCodeUrl} size={64} />
+              <QRCodeSVG value={qrCodeUrl} size={132} />
             </div>
           </div>
 
           {/* Token Display */}
-          <div className="bg-legal-blue-light p-4 rounded-lg text-center ml-12">
+          <div className="bg-legal-blue-light p-4 rounded-lg text-center ml-16">
             <p className="text-sm font-semibold text-primary mb-2">Token da Notificação:</p>
             <p className="text-xl font-mono font-bold text-primary">{notification.token}</p>
           </div>
 
           {/* Creditor Information */}
-          <div className="space-y-3 ml-12">
+          <div className="space-y-3 ml-16">
             <h2 className="text-lg font-bold text-primary border-b border-border pb-2">
               QUALIFICAÇÃO DO CREDOR
             </h2>
@@ -219,7 +249,7 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
           </div>
 
           {/* Debtor Information */}
-          <div className="space-y-3 ml-12">
+          <div className="space-y-3 ml-16">
             <h2 className="text-lg font-bold text-destructive border-b border-border pb-2">
               QUALIFICAÇÃO DO DEVEDOR
             </h2>
@@ -254,7 +284,7 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
           </div>
 
           {/* Debt Information */}
-          <div className="space-y-3 ml-12">
+          <div className="space-y-3 ml-16">
             <h2 className="text-lg font-bold text-warning border-b border-border pb-2">
               INFORMAÇÕES DO DÉBITO
             </h2>
@@ -283,7 +313,7 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
           </div>
 
           {/* Terms and Clauses */}
-          <div className="space-y-3 ml-12">
+          <div className="space-y-3 ml-16">
             <h2 className="text-lg font-bold text-primary border-b border-border pb-2">
               TERMOS E CLÁUSULAS
             </h2>
@@ -293,7 +323,7 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
           </div>
 
           {/* Footer with Barcode */}
-          <div className="border-t-2 border-primary pt-6 mt-8 ml-12">
+          <div className="border-t-2 border-primary pt-6 mt-8 ml-16">
             <div className="flex justify-center">
               <div className="text-center">
                 <Barcode value={notification.token} height={50} fontSize={12} />
