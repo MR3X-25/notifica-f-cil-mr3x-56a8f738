@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Download, CheckCircle, FileCheck } from "lucide-react";
+import { Loader2, Download, CheckCircle, FileCheck, AlertCircle } from "lucide-react";
 import Barcode from "react-barcode";
 import { QRCodeSVG } from "qrcode.react";
 import { formatCurrency, formatDate, formatDocument, generateHash, formatDateTime } from "@/lib/notificationUtils";
@@ -20,6 +29,7 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
   const [notification, setNotification] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [showAcceptDialog, setShowAcceptDialog] = useState(false);
 
   useEffect(() => {
     loadNotification();
@@ -35,6 +45,11 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
 
       if (error) throw error;
       setNotification(data);
+      
+      // Show accept dialog if not yet accepted
+      if (data && !data.accepted) {
+        setShowAcceptDialog(true);
+      }
     } catch (error) {
       console.error("Error loading notification:", error);
       toast.error("Erro ao carregar notificação");
@@ -74,6 +89,7 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
         description: `Hash: ${hash.substring(0, 16)}...`,
       });
       
+      setShowAcceptDialog(false);
       await loadNotification();
       onAccept?.();
     } catch (error) {
@@ -125,55 +141,120 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
   const qrCodeUrl = `${window.location.origin}/verify/${notification.token}`;
 
   return (
-    <div className="space-y-6">
-      {/* Action Buttons */}
-      <div className="flex gap-4 justify-end">
-        <Button variant="outline" onClick={handleGeneratePDF}>
-          <Download className="mr-2 h-4 w-4" />
-          Baixar PDF
-        </Button>
-        {!notification.accepted && (
-          <Button onClick={handleAccept} disabled={isAccepting}>
-            {isAccepting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Aceitando...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Aceitar Notificação
-              </>
-            )}
-          </Button>
-        )}
-      </div>
-
-      {/* Acceptance Status */}
-      {notification.accepted && (
-        <Card className="bg-success/10 border-success">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <FileCheck className="h-5 w-5 text-success mt-0.5" />
-              <div className="flex-1 space-y-1">
-                <p className="font-semibold text-success">Notificação Aceita</p>
-                <p className="text-sm text-muted-foreground">
-                  Data: {formatDateTime(notification.accepted_at)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  IP: {notification.acceptance_ip}
-                </p>
-                <p className="text-xs font-mono text-muted-foreground break-all">
-                  Hash: {notification.acceptance_hash}
+    <>
+      {/* Mandatory Accept Dialog */}
+      <AlertDialog open={showAcceptDialog} onOpenChange={() => {}}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-xl">
+              <AlertCircle className="h-6 w-6 text-warning" />
+              Aceitação de Notificação Extrajudicial Obrigatória
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base space-y-4 pt-4">
+              <div className="bg-warning/10 border border-warning rounded-lg p-4">
+                <p className="font-semibold text-foreground text-center">
+                  Para continuar e acessar as funcionalidades desta notificação, é obrigatório que você aceite formalmente o recebimento.
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Preview Document */}
-      <Card className="bg-card shadow-lg relative" id="notification-document">
+              <div className="text-sm text-foreground space-y-3">
+                <p>
+                  <strong>ATENÇÃO:</strong> Ao aceitar esta notificação, você confirma ter recebido e ter ciência do débito descrito neste documento.
+                </p>
+
+                <p>
+                  Esta aceitação será registrada com seu endereço IP e hash de identificação, garantindo a autenticidade e rastreabilidade conforme a legislação vigente.
+                </p>
+
+                <p>
+                  <strong>Funcionalidades bloqueadas até a aceitação:</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Download do PDF da notificação</li>
+                  <li>Visualização completa do documento</li>
+                  <li>Acesso a outras funcionalidades relacionadas</li>
+                </ul>
+              </div>
+
+              <div className="bg-legal-blue-light border border-primary rounded-lg p-4 mt-4">
+                <p className="text-sm font-semibold text-primary text-center">
+                  🔒 Ao aceitar, você estará formalmente notificado e o registro será permanente.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleAccept} disabled={isAccepting} className="w-full">
+              {isAccepting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Registrando Aceitação...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Aceitar e Continuar
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="space-y-6">
+        {/* Action Buttons - Only visible after acceptance */}
+        {notification.accepted && (
+          <div className="flex gap-4 justify-end">
+            <Button variant="outline" onClick={handleGeneratePDF}>
+              <Download className="mr-2 h-4 w-4" />
+              Baixar PDF
+            </Button>
+          </div>
+        )}
+
+        {/* Blocked Message - Show when not accepted */}
+        {!notification.accepted && (
+          <Card className="bg-warning/10 border-warning">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
+                <div className="flex-1 space-y-1">
+                  <p className="font-semibold text-warning">Funcionalidades Bloqueadas</p>
+                  <p className="text-sm text-muted-foreground">
+                    Você precisa aceitar a notificação para acessar as funcionalidades desta página.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Acceptance Status */}
+        {notification.accepted && (
+          <Card className="bg-success/10 border-success">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <FileCheck className="h-5 w-5 text-success mt-0.5" />
+                <div className="flex-1 space-y-1">
+                  <p className="font-semibold text-success">Notificação Aceita</p>
+                  <p className="text-sm text-muted-foreground">
+                    Data: {formatDateTime(notification.accepted_at)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    IP: {notification.acceptance_ip}
+                  </p>
+                  <p className="text-xs font-mono text-muted-foreground break-all">
+                    Hash: {notification.acceptance_hash}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Preview Document - Only show if accepted */}
+        {notification.accepted && (
+          <Card className="bg-card shadow-lg relative" id="notification-document">
         <CardContent className="p-8 space-y-6">
           {/* Vertical Barcode on Left Margin */}
           <div className="absolute left-0 top-8 bottom-8 flex items-center justify-center" style={{ width: '48px' }}>
@@ -333,8 +414,10 @@ export const NotificationPreview = ({ notificationId, onAccept }: NotificationPr
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+        )}
+      </div>
+    </>
   );
 };
