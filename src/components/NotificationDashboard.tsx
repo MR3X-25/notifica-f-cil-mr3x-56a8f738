@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, FileCheck, AlertCircle, Clock, DollarSign, TrendingUp, BarChart3 } from "lucide-react";
 import { formatCurrency } from "@/lib/notificationUtils";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { ReportExport } from "./ReportExport";
 
 interface DashboardStats {
   total: number;
@@ -285,6 +286,9 @@ export const NotificationDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Export Reports */}
+      <ReportExport />
     </div>
   );
 };
