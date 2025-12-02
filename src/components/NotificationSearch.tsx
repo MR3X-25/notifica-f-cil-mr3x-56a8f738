@@ -5,15 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Loader2, FileCheck, AlertCircle } from "lucide-react";
+import { Search, Loader2, FileCheck, AlertCircle, Filter, X } from "lucide-react";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/notificationUtils";
 import { NotificationList } from "@/components/NotificationList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { List } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface NotificationSearchProps {
   onViewPreview?: (id: string) => void;
 }
+
+type StatusFilter = "all" | "pending" | "accepted" | "ignored";
 
 export const NotificationSearch = ({ onViewPreview }: NotificationSearchProps) => {
   const [searchToken, setSearchToken] = useState("");
@@ -22,6 +26,11 @@ export const NotificationSearch = ({ onViewPreview }: NotificationSearchProps) =
   const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [allNotifications, setAllNotifications] = useState<any[]>([]);
+  const [filteredNotifications, setFilteredNotifications] = useState<any[]>([]);
+  
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = async () => {
     if (!searchToken && !searchHash) {
@@ -86,22 +95,153 @@ export const NotificationSearch = ({ onViewPreview }: NotificationSearchProps) =
     }
   };
 
+  // Apply filters
+  useEffect(() => {
+    let filtered = [...allNotifications];
+
+    // Status filter
+    if (statusFilter !== "all") {
+      if (statusFilter === "accepted") {
+        filtered = filtered.filter(n => n.accepted === true);
+      } else if (statusFilter === "pending") {
+        filtered = filtered.filter(n => n.accepted === false && n.status !== 'ignored');
+      } else if (statusFilter === "ignored") {
+        filtered = filtered.filter(n => n.status === 'ignored');
+      }
+    }
+
+    // Search query filter (name or document)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(n => 
+        n.debtor_name?.toLowerCase().includes(query) ||
+        n.debtor_document?.toLowerCase().includes(query) ||
+        n.creditor_name?.toLowerCase().includes(query) ||
+        n.creditor_document?.toLowerCase().includes(query) ||
+        n.token?.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredNotifications(filtered);
+  }, [allNotifications, statusFilter, searchQuery]);
+
   useEffect(() => {
     loadAllNotifications();
   }, []);
 
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setSearchQuery("");
+  };
+
+  const getStatusCounts = () => {
+    const accepted = allNotifications.filter(n => n.accepted === true).length;
+    const pending = allNotifications.filter(n => n.accepted === false && n.status !== 'ignored').length;
+    const ignored = allNotifications.filter(n => n.status === 'ignored').length;
+    return { accepted, pending, ignored, total: allNotifications.length };
+  };
+
+  const counts = getStatusCounts();
+
   return (
-    <Tabs defaultValue="search" className="space-y-6">
+    <Tabs defaultValue="list" className="space-y-6">
       <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="list" className="gap-2">
+          <List className="h-4 w-4" />
+          Histórico de Notificações
+        </TabsTrigger>
         <TabsTrigger value="search" className="gap-2">
           <Search className="h-4 w-4" />
           Buscar por Token/Hash
         </TabsTrigger>
-        <TabsTrigger value="list" className="gap-2">
-          <List className="h-4 w-4" />
-          Todas as Notificações
-        </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="list" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <List className="h-5 w-5" />
+              Histórico de Notificações
+            </CardTitle>
+            <CardDescription>
+              Filtre e busque notificações por status, nome ou documento
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Status Summary */}
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="text-sm">
+                Total: {counts.total}
+              </Badge>
+              <Badge variant="outline" className="text-sm bg-success/10 text-success border-success">
+                Aceitas: {counts.accepted}
+              </Badge>
+              <Badge variant="outline" className="text-sm bg-warning/10 text-warning border-warning">
+                Pendentes: {counts.pending}
+              </Badge>
+              <Badge variant="outline" className="text-sm bg-muted text-muted-foreground">
+                Ignoradas: {counts.ignored}
+              </Badge>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Label htmlFor="searchQuery" className="sr-only">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="searchQuery"
+                    placeholder="Buscar por nome, documento ou token..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="w-full md:w-48">
+                <Label htmlFor="statusFilter" className="sr-only">Status</Label>
+                <Select value={statusFilter} onValueChange={(value: StatusFilter) => setStatusFilter(value)}>
+                  <SelectTrigger>
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filtrar por status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="accepted">Aceitas</SelectItem>
+                    <SelectItem value="pending">Pendentes</SelectItem>
+                    <SelectItem value="ignored">Ignoradas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(statusFilter !== "all" || searchQuery) && (
+                <Button variant="ghost" size="icon" onClick={clearFilters} title="Limpar filtros">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Results */}
+            {isLoadingAll ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                {filteredNotifications.length !== allNotifications.length && (
+                  <p className="text-sm text-muted-foreground">
+                    Exibindo {filteredNotifications.length} de {allNotifications.length} notificações
+                  </p>
+                )}
+                <NotificationList 
+                  notifications={filteredNotifications} 
+                  onViewPreview={(id) => onViewPreview?.(id)}
+                />
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
 
       <TabsContent value="search" className="space-y-6">
         <Card>
@@ -248,32 +388,6 @@ export const NotificationSearch = ({ onViewPreview }: NotificationSearchProps) =
           </CardContent>
         </Card>
       )}
-      </TabsContent>
-
-      <TabsContent value="list" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <List className="h-5 w-5" />
-              Todas as Notificações
-            </CardTitle>
-            <CardDescription>
-              Lista completa de notificações emitidas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingAll ? (
-              <div className="flex items-center justify-center p-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <NotificationList 
-                notifications={allNotifications} 
-                onViewPreview={(id) => onViewPreview?.(id)}
-              />
-            )}
-          </CardContent>
-        </Card>
       </TabsContent>
     </Tabs>
   );
