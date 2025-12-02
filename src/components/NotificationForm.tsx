@@ -146,9 +146,45 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
 
       if (error) throw error;
 
-      toast.success("Notificação criada com sucesso!", {
-        description: `Token: ${token}`,
-      });
+      // Send email notification if debtor has email
+      if (data.debtorEmail) {
+        try {
+          const accessUrl = `${window.location.origin}/?preview=${notification.id}`;
+          
+          const { error: emailError } = await supabase.functions.invoke('send-notification-email', {
+            body: {
+              debtorEmail: data.debtorEmail,
+              debtorName: data.debtorName,
+              creditorName: data.creditorName,
+              token: token,
+              debtAmount: data.debtAmount,
+              dueDate: data.dueDate,
+              debtDescription: data.debtDescription,
+              accessUrl: accessUrl,
+            }
+          });
+
+          if (emailError) {
+            console.error("Error sending email:", emailError);
+            toast.warning("Notificação criada, mas houve erro ao enviar e-mail", {
+              description: `Token: ${token}`,
+            });
+          } else {
+            toast.success("Notificação criada e e-mail enviado!", {
+              description: `Token: ${token}`,
+            });
+          }
+        } catch (emailErr) {
+          console.error("Error invoking email function:", emailErr);
+          toast.success("Notificação criada com sucesso!", {
+            description: `Token: ${token} (E-mail não enviado)`,
+          });
+        }
+      } else {
+        toast.success("Notificação criada com sucesso!", {
+          description: `Token: ${token}`,
+        });
+      }
       
       onSuccess(notification.id);
     } catch (error) {
