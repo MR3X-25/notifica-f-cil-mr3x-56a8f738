@@ -3,13 +3,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotificationForm } from "@/components/NotificationForm";
 import { NotificationPreview } from "@/components/NotificationPreview";
 import { NotificationSearch } from "@/components/NotificationSearch";
-import { FileText, Search, Eye } from "lucide-react";
+import { NotificationDashboard } from "@/components/NotificationDashboard";
+import { FileText, Search, Eye, LayoutDashboard } from "lucide-react";
 import logo from "@/assets/mr3x-logo-3d.png";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const [currentNotificationId, setCurrentNotificationId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("create");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   const handleNotificationCreated = (id: string) => {
     setCurrentNotificationId(id);
@@ -41,10 +42,14 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[600px] mx-auto">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[800px] mx-auto">
+            <TabsTrigger value="dashboard" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
             <TabsTrigger value="create" className="gap-2">
               <FileText className="h-4 w-4" />
-              Criar Notificação
+              Criar
             </TabsTrigger>
             <TabsTrigger value="preview" className="gap-2" disabled={!currentNotificationId}>
               <Eye className="h-4 w-4" />
@@ -52,9 +57,23 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="search" className="gap-2">
               <Search className="h-4 w-4" />
-              Buscar/Verificar
+              Histórico
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-6 text-center">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Dashboard de Notificações
+                </h2>
+                <p className="text-muted-foreground">
+                  Visão geral das estatísticas e métricas
+                </p>
+              </div>
+              <NotificationDashboard />
+            </div>
+          </TabsContent>
 
           <TabsContent value="create" className="space-y-6">
             <div className="max-w-4xl mx-auto">

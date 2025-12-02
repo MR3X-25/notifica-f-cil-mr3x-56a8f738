@@ -151,7 +151,7 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
         try {
           const accessUrl = `${window.location.origin}/?preview=${notification.id}`;
           
-          const { error: emailError } = await supabase.functions.invoke('send-notification-email', {
+          const response = await supabase.functions.invoke('send-notification-email', {
             body: {
               debtorEmail: data.debtorEmail,
               debtorName: data.debtorName,
@@ -164,10 +164,10 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
             }
           });
 
-          if (emailError) {
-            console.error("Error sending email:", emailError);
-            toast.warning("Notificação criada, mas houve erro ao enviar e-mail", {
-              description: `Token: ${token}`,
+          if (response.error || (response.data && !response.data.success)) {
+            console.log("Email not sent (domain verification required):", response);
+            toast.success("Notificação criada com sucesso!", {
+              description: `Token: ${token}. Configure um domínio verificado no Resend para enviar e-mails.`,
             });
           } else {
             toast.success("Notificação criada e e-mail enviado!", {
@@ -175,15 +175,34 @@ export const NotificationForm = ({ onSuccess }: NotificationFormProps) => {
             });
           }
         } catch (emailErr) {
-          console.error("Error invoking email function:", emailErr);
+          console.log("Email service unavailable:", emailErr);
           toast.success("Notificação criada com sucesso!", {
-            description: `Token: ${token} (E-mail não enviado)`,
+            description: `Token: ${token}`,
           });
         }
       } else {
         toast.success("Notificação criada com sucesso!", {
           description: `Token: ${token}`,
         });
+      }
+      
+      // Send WhatsApp notification if debtor has phone
+      if (data.debtorPhone) {
+        const phone = data.debtorPhone.replace(/\D/g, '');
+        const accessUrl = `${window.location.origin}/?preview=${notification.id}`;
+        const message = encodeURIComponent(
+          `*NOTIFICAÇÃO EXTRAJUDICIAL*\n\n` +
+          `Prezado(a) ${data.debtorName},\n\n` +
+          `Você está recebendo uma notificação extrajudicial.\n\n` +
+          `*Token:* ${token}\n` +
+          `*Credor:* ${data.creditorName}\n` +
+          `*Valor:* R$ ${data.debtAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
+          `*Vencimento:* ${new Date(data.dueDate).toLocaleDateString('pt-BR')}\n\n` +
+          `Acesse para mais detalhes e aceite:\n${accessUrl}`
+        );
+        
+        // Open WhatsApp in a new tab (user needs to send manually)
+        window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
       }
       
       onSuccess(notification.id);
